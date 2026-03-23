@@ -8,7 +8,6 @@ import {
   AssessmentResponseDto,
   UpdateAssessmentScoresDto,
 } from './dto/create-assessment.dto';
-import { RecommendationsService } from '../recommendations/recommendations.service';
 
 @Injectable()
 export class AssessmentsService {
@@ -17,7 +16,6 @@ export class AssessmentsService {
     private assessmentsRepository: Repository<Assessment>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    private recommendationsService: RecommendationsService,
   ) {}
 
   /**
@@ -41,21 +39,20 @@ export class AssessmentsService {
     const assessment = this.assessmentsRepository.create(createAssessmentDto);
     const saved = await this.assessmentsRepository.save(assessment);
 
-    // Generate recommendations based on assessment scores
-    try {
-      if (createAssessmentDto.interestScore && createAssessmentDto.skillScore && createAssessmentDto.environmentScore) {
-        await this.recommendationsService.generateRecommendationsFromAssessment(
-          createAssessmentDto.userId,
-          createAssessmentDto.interestScore,
-          createAssessmentDto.skillScore,
-          createAssessmentDto.environmentScore,
-        );
-        console.log(`Generated recommendations for user ${createAssessmentDto.userId}`);
-      }
-    } catch (error) {
-      console.error('Error generating recommendations:', error);
-      // Don't fail the assessment save if recommendations generation fails
-    }
+    // NOTE: Recommendations generation moved to PERSON2_MODULES
+    // When recommendations module is integrated, uncomment:
+    // try {
+    //   if (createAssessmentDto.interestScore && createAssessmentDto.skillScore && createAssessmentDto.environmentScore) {
+    //     await this.recommendationsService.generateRecommendationsFromAssessment(
+    //       createAssessmentDto.userId,
+    //       createAssessmentDto.interestScore,
+    //       createAssessmentDto.skillScore,
+    //       createAssessmentDto.environmentScore,
+    //     );
+    //   }
+    // } catch (error) {
+    //   console.error('Error generating recommendations:', error);
+    // }
 
     return this.mapToResponseDto(saved);
   }
