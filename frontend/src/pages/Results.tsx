@@ -4,8 +4,10 @@ import { Header } from "@/components/Header";
 import { CareerCard } from "@/components/CareerCard";
 import { ScoreBarChart } from "@/components/ScoreBarChart";
 import { SkillRadarChart } from "@/components/SkillRadarChart";
-import { getAssessment } from "@/services/storageService";
+import { getAssessment, getCurrentUser } from "@/services/storageService";
 import { calculateCareerScores } from "@/services/recommendationService";
+import { getUserRecommendations } from "@/services/recommendationsApi";
+import { getUserAssessment } from "@/services/assessmentsApi";
 import { CareerResult } from "@/types/career";
 import { AssessmentData } from "@/types/assessment";
 import { Button } from "@/components/ui/button";
@@ -17,14 +19,105 @@ export default function ResultsPage() {
   const [results, setResults] = useState<CareerResult[]>([]);
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [compareList, setCompareList] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const data = getAssessment();
-    if (data) {
-      setAssessment(data);
-      const scores = calculateCareerScores(data);
-      setResults(scores);
-    }
+    const loadResults = async () => {
+      try {
+        setIsLoading(true);
+        // Try to get current user from storage or backend
+        const user = getCurrentUser();
+        
+        if (!user || !user.id) {
+          // No user logged in, use local assessment
+          const localData = getAssessment();
+          if (localData) {
+            setAssessment(localData);
+            const scores = calculateCareerScores(localData);
+            setResults(scores);
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        // Try to fetch recommendations from backend
+        try {
+          const response = await getUserRecommendations(user.id);
+          
+          // Map backend recommendations to CareerResult format
+          if (response.recommendations && response.recommendations.length > 0) {
+            const mappedResults: CareerResult[] = response.recommendations.map((rec) => ({
+              career: {
+                id: String(rec.id),
+                title: rec.careerTitle,
+                description: rec.careerDescription || "Career opportunity",
+                industry: "Various Industries",
+                education_pathway: "Check detailed profile",
+                average_salary_range: "Competitive",
+                growth_outlook: "Growing",
+                interest_tags: [],
+                required_skills: [],
+                environment_tags: [],
+                roadmap: [],
+              },
+              finalScore: rec.score,
+              interestScore: rec.interestScore,
+              skillScore: rec.skillScore,
+              environmentScore: rec.environmentScore,
+              missingSkills: [],
+            }));
+
+            setResults(mappedResults);
+            
+            // Try to get the assessment data to populate details
+            try {
+              const assessmentResponse = await getUserAssessment(user.id);
+              if (assessmentResponse && assessmentResponse.responses) {
+                // Map backend assessment response to frontend AssessmentData format
+                const responses = assessmentResponse.responses;
+                setAssessment({
+                  interests: responses.interests || [],
+                  skills: responses.skills || [],
+                  environmentPreferences: responses.environmentPreferences || [],
+                });
+              } else if (!assessment) {
+                // Fallback: use local assessment if available
+                const localData = getAssessment();
+                if (localData) {
+                  setAssessment(localData);
+                }
+              }
+            } catch (e) {
+              // Assessment not found or error, fall back to local
+              console.warn('Could not load assessment from backend:', e);
+              const localData = getAssessment();
+              if (localData) {
+                setAssessment(localData);
+              }
+            }
+          }
+        } catch (backendError) {
+          // Backend failed, fall back to local calculation
+          console.error("Backend recommendations failed:", backendError);
+          const localData = getAssessment();
+          if (localData) {
+            setAssessment(localData);
+            const scores = calculateCareerScores(localData);
+            setResults(scores);
+          } else {
+            setError("Unable to load recommendations. Please retake the assessment.");
+          }
+        }
+      } catch (err) {
+        console.error("Error loading results:", err);
+        setError("Failed to load results. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadResults();
   }, []);
 
   const toggleCompare = (id: string) => {
@@ -33,7 +126,28 @@ export default function ResultsPage() {
     );
   };
 
-  if (!assessment)
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container py-24 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md mx-auto"
+          >
+            <div className="h-16 w-16 mx-auto mb-6 bg-muted rounded-full animate-pulse" />
+            <h1 className="text-2xl font-bold mb-3">Loading your recommendations...</h1>
+            <p className="text-muted-foreground">
+              We're analyzing your assessment data to find the best career matches.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || (!assessment && results.length === 0)) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -46,8 +160,7 @@ export default function ResultsPage() {
             <GitCompareArrows className="h-16 w-16 mx-auto text-muted-foreground/40 mb-6" />
             <h1 className="text-2xl font-bold mb-3">No Career Matches Yet</h1>
             <p className="text-muted-foreground mb-8">
-              Take the career assessment to discover your top 5 career matches based on your interests,
-              skills, and preferences.
+              {error || "Take the career assessment to discover your top 5 career matches based on your interests, skills, and preferences."}
             </p>
             <Button
               onClick={() => navigate("/assessment")}
@@ -59,6 +172,7 @@ export default function ResultsPage() {
         </div>
       </div>
     );
+  }
 
   const top5 = results.slice(0, 5);
 

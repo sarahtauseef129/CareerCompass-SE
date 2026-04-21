@@ -43,7 +43,11 @@ export class AssessmentsService {
 
     // Generate recommendations based on assessment scores
     try {
-      if (createAssessmentDto.interestScore && createAssessmentDto.skillScore && createAssessmentDto.environmentScore) {
+      if (
+        createAssessmentDto.interestScore !== null && createAssessmentDto.interestScore !== undefined &&
+        createAssessmentDto.skillScore !== null && createAssessmentDto.skillScore !== undefined &&
+        createAssessmentDto.environmentScore !== null && createAssessmentDto.environmentScore !== undefined
+      ) {
         await this.recommendationsService.generateRecommendationsFromAssessment(
           createAssessmentDto.userId,
           createAssessmentDto.interestScore,

@@ -69,7 +69,7 @@ export function AssessmentWizard() {
 
           // Create assessment payload for backend
           const assessmentPayload = {
-            userId: user.id,
+            userId: parseInt(user.id, 10),
             responses: {
               interests: interests.map(i => ({ question: i.question, rating: i.rating })),
               skills: skills.map(s => ({ skill: s.skill, level: s.level })),

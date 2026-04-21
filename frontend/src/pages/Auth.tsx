@@ -12,6 +12,7 @@ import {
   logoutUserApi,
 } from "@/services/authApi";
 import { registerUser, loginUser } from "@/services/storageService";
+import { getErrorMessage, isApiValidationError } from "@/services/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Compass, Loader2 } from "lucide-react";
@@ -55,16 +56,27 @@ export default function AuthPage() {
           navigate("/assessment");
           return;
         } catch (error) {
-          // Fallback to localStorage
-          console.error("Backend login failed, trying localStorage:", error);
-          const user = loginUser(email.trim(), password);
-          if (!user) {
-            toast.error("Invalid email or password");
+          // If it's an API validation error, don't fall back to localStorage
+          if (isApiValidationError(error)) {
+            toast.error(getErrorMessage(error));
             setIsLoading(false);
             return;
           }
-          toast.success(`Welcome back, ${user.name}!`);
-          navigate("/assessment");
+
+          // Only fall back to localStorage for network errors
+          try {
+            const user = loginUser(email.trim(), password);
+            if (user) {
+              toast.success(`Welcome back, ${user.name}!`);
+              navigate("/assessment");
+              return;
+            } else {
+              toast.error("Invalid email or password");
+            }
+          } catch {
+            toast.error(getErrorMessage(error));
+          }
+          setIsLoading(false);
         }
       } else {
         if (!name.trim()) {
@@ -85,19 +97,28 @@ export default function AuthPage() {
           navigate("/auth?mode=login");
           return;
         } catch (error) {
-          // Fallback to localStorage
-          console.error("Backend registration failed, trying localStorage:", error);
-          const user = registerUser(email.trim(), password, name.trim());
-          if (!user) {
-            toast.error("An account with this email already exists");
+          // If it's an API validation error, don't fall back to localStorage
+          if (isApiValidationError(error)) {
+            toast.error(getErrorMessage(error));
             setIsLoading(false);
             return;
           }
-          toast.success("Account created successfully! Please sign in.");
-          setPassword("");
-          setName("");
-          setIsLogin(true);
-          navigate("/auth?mode=login");
+
+          // Only fall back to localStorage for network errors
+          try {
+            const user = registerUser(email.trim(), password, name.trim());
+            if (user) {
+              toast.success("Account created successfully! Please sign in.");
+              setPassword("");
+              setName("");
+              setIsLogin(true);
+              navigate("/auth?mode=login");
+              return;
+            }
+          } catch {
+            toast.error(getErrorMessage(error));
+          }
+          setIsLoading(false);
         }
       }
     } finally {

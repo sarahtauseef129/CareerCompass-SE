@@ -127,22 +127,28 @@ export class RecommendationsService {
     const recommendations: RecommendationScore[] = [];
 
     for (const career of careers) {
-      // Calculate match score as weighted average of the three dimensions
-      // Weights: Interest 40%, Skill 40%, Environment 20%
-      const finalScore = (interestScore * 0.4 + skillScore * 0.4 + environmentScore * 0.2);
+      // Scale scores to 0-100 range
+      // interestScore comes as 0-5 average, scale to 0-100: (score/5) * 100 * 40% = score * 8
+      // skillScore comes as 0-3 average, scale to 0-100: (score/3) * 100 * 40% = score * 13.33
+      // environmentScore comes as 0-5, scale to 0-100: (score/5) * 100 * 20% = score * 4
+      const scaledInterestScore = (interestScore / 5) * 40;
+      const scaledSkillScore = (skillScore / 3) * 40;
+      const scaledEnvironmentScore = (environmentScore / 5) * 20;
 
-      // Add some variation based on career to make it more realistic
-      // (In production, this could include user profile matching)
+      // Calculate final score as weighted sum (0-100)
+      const baseScore = scaledInterestScore + scaledSkillScore + scaledEnvironmentScore;
+
+      // Add some variation based on career to make it more realistic (0.8 to 1.2 factor)
       const variationFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-      const adjustedScore = Math.min(5, finalScore * variationFactor);
+      const finalScore = Math.min(100, baseScore * variationFactor);
 
       const recommendation = this.recommendationScoreRepository.create({
         userId,
         careerId: career.id,
-        score: Math.round(adjustedScore * 100) / 100, // Round to 2 decimals
-        interestScore: Math.round(interestScore * 100) / 100,
-        skillScore: Math.round(skillScore * 100) / 100,
-        environmentScore: Math.round(environmentScore * 100) / 100,
+        score: Math.round(finalScore * 100) / 100, // Round to 2 decimals
+        interestScore: Math.round(scaledInterestScore * 100) / 100,
+        skillScore: Math.round(scaledSkillScore * 100) / 100,
+        environmentScore: Math.round(scaledEnvironmentScore * 100) / 100,
       });
 
       recommendations.push(recommendation);

@@ -12,6 +12,24 @@ export class ApiError extends Error {
   }
 }
 
+// Extract error message from API response
+export function getErrorMessage(error: any): string {
+  if (error instanceof ApiError) {
+    // Handle validation errors array (from class-validator)
+    if (Array.isArray(error.data.message)) {
+      return error.data.message[0]; // Return first validation error
+    }
+    // Handle single error message
+    return error.data.message || 'API request failed';
+  }
+  return error instanceof Error ? error.message : 'An unknown error occurred';
+}
+
+// Check if error is an API validation error (not a network error)
+export function isApiValidationError(error: any): boolean {
+  return error instanceof ApiError;
+}
+
 export async function apiCall<T>(
   endpoint: string,
   options: RequestInit = {}

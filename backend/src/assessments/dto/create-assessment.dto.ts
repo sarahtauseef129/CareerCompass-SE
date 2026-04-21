@@ -1,8 +1,22 @@
+import { IsNumber, IsObject, IsOptional } from 'class-validator';
+
 export class CreateAssessmentDto {
+  @IsNumber()
   userId: number;
+
+  @IsObject()
   responses: Record<string, any>;
+
+  @IsNumber()
+  @IsOptional()
   interestScore?: number;
+
+  @IsNumber()
+  @IsOptional()
   skillScore?: number;
+
+  @IsNumber()
+  @IsOptional()
   environmentScore?: number;
 }
 
