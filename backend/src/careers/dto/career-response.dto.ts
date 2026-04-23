@@ -1,3 +1,4 @@
+//career-response.dto.ts
 export class CareerSkillDto {
   id: number;
   skillName: string;

@@ -1,3 +1,4 @@
+// src/seeds/careers-seed.data.ts
 export const CAREERS_SEED_DATA = [
   {
     title: "Software Engineer",

@@ -1,3 +1,4 @@
+// src/seeds/db-seeder.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +9,10 @@ import { User } from '../users/entities/user.entity';
 import { CAREERS_SEED_DATA } from './careers-seed.data';
 import { USERS_SEED_DATA } from './users-seed.data';
 
+import { Roadmap } from '../roadmaps/entities/roadmap.entity';
+import { RoadmapStep } from '../roadmaps/entities/roadmap-step.entity';
+import { ROADMAP_SEED_DATA } from './roadmap-seed.data';
+
 @Injectable()
 export class DbSeederService {
   constructor(
@@ -17,6 +22,10 @@ export class DbSeederService {
     private careerSkillRepository: Repository<CareerSkill>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Roadmap)
+    private roadmapRepository: Repository<Roadmap>,
+    @InjectRepository(RoadmapStep)
+    private roadmapStepRepository: Repository<RoadmapStep>,
   ) {}
 
   async seedCareers() {
@@ -168,16 +177,76 @@ export class DbSeederService {
       throw error;
     }
   }
+async seedAll() {
+  console.log('Seeding all data...');
+  const careerResult = await this.seedCareers();
+  const userResult = await this.seedUsers();
+  const roadmapResult = await this.seedRoadmaps(); // 👈 this line was missing
 
-  async seedAll() {
-    console.log('Seeding all data...');
-    const careerResult = await this.seedCareers();
-    const userResult = await this.seedUsers();
+  return {
+    message: 'All data seeded successfully',
+    careers: careerResult,
+    users: userResult,
+    roadmaps: roadmapResult,
+  };
+}
 
-    return {
-      message: 'All data seeded successfully',
-      careers: careerResult,
-      users: userResult,
-    };
+  async seedRoadmaps() {
+  console.log('Starting roadmaps seeding...');
+
+  const existingCount = await this.roadmapRepository.count();
+  if (existingCount > 0) {
+    console.log(`Database already contains ${existingCount} roadmaps. Skipping.`);
+    return { message: 'Roadmaps already seeded', roadmapsCount: existingCount };
   }
+
+  try {
+    for (const roadmapData of ROADMAP_SEED_DATA) {
+      // find matching career by title
+      const career = await this.careerRepository.findOne({
+        where: { title: roadmapData.careerTitle },
+      });
+
+      if (!career) {
+        console.log(`⚠ Career not found: ${roadmapData.careerTitle}, skipping.`);
+        continue;
+      }
+
+      const roadmap = this.roadmapRepository.create({
+        career,
+        title: roadmapData.title,
+        description: roadmapData.description,
+      });
+
+      const savedRoadmap = await this.roadmapRepository.save(roadmap);
+
+      const steps = roadmapData.steps.map((step) =>
+        this.roadmapStepRepository.create({
+          roadmap: savedRoadmap,
+          title: step.title,
+          description: step.description,
+          stepOrder: step.stepOrder,
+        }),
+      );
+
+      await this.roadmapStepRepository.save(steps);
+      console.log(`✓ Seeded roadmap: ${roadmapData.title}`);
+    }
+
+    const finalCount = await this.roadmapRepository.count();
+    console.log(`\n✓ Roadmaps seeding completed! Total: ${finalCount}`);
+    return { message: 'Roadmaps seeded successfully', roadmapsCount: finalCount };
+
+  } catch (error) {
+    console.error('Error seeding roadmaps:', error);
+    throw error;
+  }
+}
+
+async resetRoadmaps() {
+  await this.roadmapStepRepository.delete({});
+  await this.roadmapRepository.delete({});
+  console.log('✓ Deleted all roadmaps and steps');
+  return { message: 'All roadmaps deleted successfully' };
+}
 }

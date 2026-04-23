@@ -1,3 +1,4 @@
+//career-skill.entity.ts
 import {
   Column,
   CreateDateColumn,

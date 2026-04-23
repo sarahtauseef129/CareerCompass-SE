@@ -1,3 +1,4 @@
+//career.entity.ts
 import {
   Column,
   CreateDateColumn,

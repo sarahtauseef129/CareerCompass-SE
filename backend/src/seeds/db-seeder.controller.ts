@@ -1,3 +1,4 @@
+// src/seeds/db-seeder.controller.ts
 import { Controller, Post } from '@nestjs/common';
 import { DbSeederService } from './db-seeder.service';
 
@@ -33,5 +34,14 @@ export class DbSeederController {
   @Post('all')
   async seedAll() {
     return this.seederService.seedAll();
+  }
+  @Post('roadmaps')
+  async seedRoadmaps() {
+    return this.seederService.seedRoadmaps();
+  }
+
+  @Post('roadmaps/reset')
+  async resetRoadmaps() {
+    return this.seederService.resetRoadmaps();
   }
 }

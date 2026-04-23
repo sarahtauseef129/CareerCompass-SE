@@ -1,3 +1,4 @@
+//roadmap-step.entity.ts
 import {
   Column,
   CreateDateColumn,
@@ -12,7 +13,7 @@ export class RoadmapStep {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Roadmap, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Roadmap, (roadmap) => roadmap.steps, { onDelete: 'CASCADE' }) // 👈 add inverse
   roadmap: Roadmap;
 
   @Column({ type: 'varchar', length: 255 })

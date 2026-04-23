@@ -23,7 +23,10 @@ export class RoadmapProgress {
   completed: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
-  completedAt: Date;
+  completedAt: Date | null;;
+
+  @Column({ type: 'integer', default: 0 }) // 👈 added for UC-21
+  priorityOrder: number;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;

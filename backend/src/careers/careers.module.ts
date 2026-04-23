@@ -1,3 +1,4 @@
+//careers.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CareersService } from './careers.service';
@@ -9,6 +10,6 @@ import { CareerSkill } from './entities/career-skill.entity';
   imports: [TypeOrmModule.forFeature([Career, CareerSkill])],
   controllers: [CareersController],
   providers: [CareersService],
-  exports: [CareersService],
+  exports: [CareersService, TypeOrmModule],
 })
 export class CareersModule {}
