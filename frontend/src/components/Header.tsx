@@ -1,19 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import {
-  Compass,
-  LogOut,
-  Home,
-  ClipboardList,
-  Menu,
-  User,
-} from "lucide-react";
+import { Compass, LogOut, Home, Map, ClipboardList, Bookmark, MessageSquare, Shield, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { getCurrentUser, logoutUser } from "@/services/storageService";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -27,18 +15,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
-  {
-    label: "Assessment",
-    path: "/assessment",
-    icon: <ClipboardList className="h-4 w-4" />,
-    requiresAuth: true,
-  },
-  {
-    label: "Career Matches",
-    path: "/results",
-    icon: <Compass className="h-4 w-4" />,
-    requiresAuth: true,
-  },
+  { label: "Career Matches", path: "/results", icon: <Compass className="h-4 w-4" />, requiresAuth: true },
+  { label: "Learning Roadmap", path: "/roadmap", icon: <Map className="h-4 w-4" />, requiresAuth: true },
+  { label: "Assessment", path: "/assessment", icon: <ClipboardList className="h-4 w-4" />, requiresAuth: true },
+  { label: "Bookmarks", path: "/bookmarks", icon: <Bookmark className="h-4 w-4" />, requiresAuth: true },
+  { label: "Feedback", path: "/feedback", icon: <MessageSquare className="h-4 w-4" />, requiresAuth: true },
+  { label: "Privacy", path: "/privacy", icon: <Shield className="h-4 w-4" /> },
 ];
 
 export function Header() {
@@ -63,11 +45,13 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-lg">
           <Compass className="h-6 w-6 text-primary" />
           <span className="text-gradient">CareerCompass</span>
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-1">
           {visibleItems.map((item) => (
             <Link
@@ -86,6 +70,7 @@ export function Header() {
           ))}
         </nav>
 
+        {/* Right section */}
         <div className="flex items-center gap-3">
           {user ? (
             <>
@@ -93,26 +78,18 @@ export function Header() {
                 <User className="inline h-4 w-4 mr-1" />
                 {user.name}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="hidden lg:flex"
-              >
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="hidden lg:flex">
                 <LogOut className="h-4 w-4 mr-1" />
                 Logout
               </Button>
             </>
           ) : (
-            <Button
-              size="sm"
-              className="gradient-primary text-primary-foreground"
-              onClick={() => navigate("/auth")}
-            >
+            <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => navigate("/auth")}>
               Get Started
             </Button>
           )}
 
+          {/* Mobile hamburger */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden">
@@ -140,7 +117,6 @@ export function Header() {
                 ))}
                 {user && (
                   <button
-                    type="button"
                     onClick={handleLogout}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-all mt-4"
                   >
