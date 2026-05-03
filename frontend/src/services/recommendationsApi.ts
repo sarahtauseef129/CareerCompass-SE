@@ -1,3 +1,4 @@
+//recomendationsApi.ts
 import { apiCall } from './api';
 
 export interface RecommendationScoreDto {

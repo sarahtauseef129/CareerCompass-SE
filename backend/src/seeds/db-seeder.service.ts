@@ -242,11 +242,21 @@ async seedAll() {
     throw error;
   }
 }
-
 async resetRoadmaps() {
-  await this.roadmapStepRepository.delete({});
-  await this.roadmapRepository.delete({});
-  console.log('✓ Deleted all roadmaps and steps');
-  return { message: 'All roadmaps deleted successfully' };
+  console.log('Resetting roadmaps data...');
+  try {
+    await this.roadmapStepRepository.query('DELETE FROM roadmap_step');
+    await this.roadmapRepository.query('DELETE FROM roadmap');
+    console.log('✓ Deleted all roadmaps and steps');
+    return { message: 'All roadmaps deleted successfully' };
+  } catch (error) {
+    console.error('Error resetting roadmaps:', error);
+    throw error;
+  }
+}
+async reseedRoadmaps() {
+  console.log('Reseeding roadmaps...');
+  await this.resetRoadmaps();
+  return this.seedRoadmaps();
 }
 }

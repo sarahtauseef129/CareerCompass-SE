@@ -80,4 +80,7 @@ return this.mapToDto(loaded);
       createdAt: bookmark.createdAt,
     };
   }
+async resetAll(): Promise<void> {
+  await this.bookmarkRepo.query('DELETE FROM bookmark');
+}
 }

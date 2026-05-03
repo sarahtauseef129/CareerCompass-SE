@@ -1,3 +1,4 @@
+//assessment.ts
 export interface InterestRating {
   question: string;
   tag: string;

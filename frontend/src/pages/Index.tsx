@@ -1,3 +1,4 @@
+// Index.tsx
 import { Header } from "@/components/Header";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";

@@ -1,6 +1,7 @@
-import { useSearchParams, useNavigate } from "react-router-dom";
+// Compare.tsximport { useSearchParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
-import { CAREERS } from "@/data/careers";
+import { compareCareers, ComparisonResponseDto } from "@/services/comparisonApi";
 import { getAssessment } from "@/services/storageService";
 import { calculateCareerScores } from "@/services/recommendationService";
 import { Badge } from "@/components/ui/badge";
@@ -11,15 +12,25 @@ import { motion } from "framer-motion";
 export default function ComparePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const ids = (searchParams.get("ids") || "").split(",").filter(Boolean);
-  const assessment = getAssessment();
-  const results = assessment ? calculateCareerScores(assessment) : [];
-  const careers = ids.map((id) => ({
-    career: CAREERS.find((c) => c.id === id)!,
-    result: results.find((r) => r.career.id === id),
-  })).filter((c) => c.career);
+  const [comparison, setComparison] = useState<ComparisonResponseDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (careers.length < 2) {
+  // ids from URL are numeric backend IDs e.g. "1,2,3"
+  const ids = (searchParams.get("ids") || "").split(",").filter(Boolean).map(Number);
+
+  const assessment = getAssessment();
+  const localResults = assessment ? calculateCareerScores(assessment) : [];
+
+  useEffect(() => {
+    if (ids.length < 2) { setLoading(false); return; }
+    compareCareers(ids)
+      .then(setComparison)
+      .catch(() => setError("Failed to load comparison data"))
+      .finally(() => setLoading(false));
+  }, [searchParams]);
+
+  if (ids.length < 2) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -31,7 +42,27 @@ export default function ComparePage() {
     );
   }
 
-  const allSkills = [...new Set(careers.flatMap((c) => c.career.required_skills))];
+  if (loading) return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container py-20 text-center text-muted-foreground">Loading comparison...</div>
+    </div>
+  );
+
+  if (error || !comparison) return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container py-20 text-center">
+        <p className="text-destructive mb-4">{error || "Something went wrong"}</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    </div>
+  );
+
+  const careers = comparison.careers;
+
+  // collect all unique skill names across compared careers
+  const allSkills = [...new Set(careers.flatMap((c) => c.skills?.map((s) => s.skillName) ?? []))];
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,47 +81,31 @@ export default function ComparePage() {
               <tr>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Attribute</th>
                 {careers.map((c) => (
-                  <th key={c.career.id} className="p-4 text-center">
-                    <span className="font-bold text-lg">{c.career.title}</span>
+                  <th key={c.id} className="p-4 text-center">
+                    <span className="font-bold text-lg">{c.title}</span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               <tr className="bg-card">
-                <td className="p-4 text-sm font-medium">Compatibility</td>
-                {careers.map((c) => (
-                  <td key={c.career.id} className="p-4 text-center">
-                    <Badge className="gradient-primary text-primary-foreground border-0">
-                      {c.result ? Math.round(c.result.finalScore) + "%" : "N/A"}
-                    </Badge>
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <td className="p-4 text-sm font-medium">Salary</td>
-                {careers.map((c) => (
-                  <td key={c.career.id} className="p-4 text-center text-sm">{c.career.average_salary_range}</td>
-                ))}
-              </tr>
-              <tr className="bg-card">
-                <td className="p-4 text-sm font-medium">Growth</td>
-                {careers.map((c) => (
-                  <td key={c.career.id} className="p-4 text-center text-sm">{c.career.growth_outlook}</td>
-                ))}
-              </tr>
-              <tr>
                 <td className="p-4 text-sm font-medium">Education</td>
                 {careers.map((c) => (
-                  <td key={c.career.id} className="p-4 text-center text-sm">{c.career.education_pathway}</td>
+                  <td key={c.id} className="p-4 text-center text-sm">{c.educationPath ?? "—"}</td>
                 ))}
               </tr>
-              {allSkills.map((skill) => (
-                <tr key={skill} className="bg-card">
+              <tr>
+                <td className="p-4 text-sm font-medium">Industry</td>
+                {careers.map((c) => (
+                  <td key={c.id} className="p-4 text-center text-sm">{c.industryOverview ?? "—"}</td>
+                ))}
+              </tr>
+              {allSkills.map((skill, i) => (
+                <tr key={skill} className={i % 2 === 0 ? "bg-card" : ""}>
                   <td className="p-4 text-sm font-medium">{skill}</td>
                   {careers.map((c) => (
-                    <td key={c.career.id} className="p-4 text-center">
-                      {c.career.required_skills.includes(skill) ? (
+                    <td key={c.id} className="p-4 text-center">
+                      {c.skills?.some((s) => s.skillName === skill) ? (
                         <Check className="h-5 w-5 text-accent mx-auto" />
                       ) : (
                         <X className="h-5 w-5 text-muted-foreground/30 mx-auto" />

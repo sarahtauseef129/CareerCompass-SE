@@ -41,7 +41,6 @@ export async function apiCall<T>(
     ...options.headers,
   };
 
-  // Add authorization token if available
   const token = localStorage.getItem('authToken');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -53,10 +52,16 @@ export async function apiCall<T>(
       headers,
     });
 
-    const data = await response.json();
+    // handle empty responses (204 No Content)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : undefined;
 
     if (!response.ok) {
-      throw new ApiError(response.status, data, data.message || 'API request failed');
+      throw new ApiError(response.status, data, data?.message || 'API request failed');
     }
 
     return data as T;
@@ -64,7 +69,6 @@ export async function apiCall<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-
     throw new Error(
       error instanceof Error ? error.message : 'An unknown error occurred'
     );

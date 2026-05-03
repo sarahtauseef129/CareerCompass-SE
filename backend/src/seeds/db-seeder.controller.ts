@@ -44,4 +44,9 @@ export class DbSeederController {
   async resetRoadmaps() {
     return this.seederService.resetRoadmaps();
   }
+  
+  @Post('roadmaps/reseed')
+async reseedRoadmaps() {
+  return this.seederService.reseedRoadmaps();
+}
 }
